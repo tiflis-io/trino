@@ -40,6 +40,7 @@ import io.trino.spi.Page;
 import io.trino.spi.block.ArrayBlock;
 import io.trino.spi.block.Block;
 import io.trino.spi.block.DictionaryBlock;
+import io.trino.spi.block.LongArrayBlock;
 import io.trino.spi.block.RowBlock;
 import io.trino.spi.block.RunLengthEncodedBlock;
 import io.trino.spi.connector.SourcePage;
@@ -100,6 +101,7 @@ public class ParquetReader
     private final Optional<String> fileCreatedBy;
     private final List<RowGroupInfo> rowGroups;
     private final List<Column> columnFields;
+    private final boolean appendRowNumberColumn;
     private final List<PrimitiveField> primitiveFields;
     private final ParquetDataSource dataSource;
     private final ColumnReaderFactory columnReaderFactory;
@@ -138,6 +140,7 @@ public class ParquetReader
     public ParquetReader(
             Optional<String> fileCreatedBy,
             List<Column> columnFields,
+            boolean appendRowNumberColumn,
             List<RowGroupInfo> rowGroups,
             ParquetDataSource dataSource,
             DateTimeZone timeZone,
@@ -151,6 +154,7 @@ public class ParquetReader
         this.fileCreatedBy = requireNonNull(fileCreatedBy, "fileCreatedBy is null");
         requireNonNull(columnFields, "columnFields is null");
         this.columnFields = ImmutableList.copyOf(columnFields);
+        this.appendRowNumberColumn = appendRowNumberColumn;
         this.primitiveFields = getPrimitiveFields(columnFields.stream().map(Column::field).collect(toImmutableList()));
         this.rowGroups = requireNonNull(rowGroups, "rowGroups is null");
         this.dataSource = requireNonNull(dataSource, "dataSource is null");
@@ -259,7 +263,8 @@ public class ParquetReader
     private class ParquetSourcePage
             implements SourcePage
     {
-        private final Block[] blocks = new Block[columnFields.size()];
+        private final Block[] blocks = new Block[columnFields.size() + (appendRowNumberColumn ? 1 : 0)];
+        private final int rowNumberColumnIndex = appendRowNumberColumn ? columnFields.size() : -1;
         private SelectedPositions selectedPositions;
 
         public ParquetSourcePage(int positionCount)
@@ -318,10 +323,15 @@ public class ParquetReader
         {
             Block block = blocks[channel];
             if (block == null) {
-                // todo use selected positions to improve read performance
-                Field field = columnFields.get(channel).field();
-                block = blockFactory.createBlock(batchSize, () -> readBlock(field));
-                block = selectedPositions.apply(block);
+                if (channel == rowNumberColumnIndex) {
+                    block = selectedPositions.createRowNumberBlock(lastBatchStartRow());
+                }
+                else {
+                    // todo use selected positions to improve read performance
+                    Field field = columnFields.get(channel).field();
+                    block = blockFactory.createBlock(batchSize, () -> readBlock(field));
+                    block = selectedPositions.apply(block);
+                }
                 blocks[channel] = block;
             }
             return block;
@@ -360,6 +370,16 @@ public class ParquetReader
                 return block;
             }
             return block.getPositions(positions, 0, positionCount);
+        }
+
+        public Block createRowNumberBlock(long startRowNumber)
+        {
+            long[] rowNumbers = new long[positionCount];
+            for (int i = 0; i < positionCount; i++) {
+                int position = positions == null ? i : positions[i];
+                rowNumbers[i] = startRowNumber + position;
+            }
+            return new LongArrayBlock(positionCount, Optional.empty(), rowNumbers);
         }
 
         @CheckReturnValue
