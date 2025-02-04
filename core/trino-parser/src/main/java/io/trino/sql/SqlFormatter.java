@@ -644,11 +644,8 @@ public final class SqlFormatter
         @Override
         protected Void visitQuery(Query node, Integer indent)
         {
-            if (!node.getFunctions().isEmpty() || !node.getSessionProperties().isEmpty()) {
-                builder.append("WITH\n");
-                if (!node.getSessionProperties().isEmpty()) {
-                    append(indent + 1, "SESSION\n");
-                }
+            if (!node.getSessionProperties().isEmpty()) {
+                builder.append("WITH SESSION ");
                 Iterator<SessionProperty> sessionProperties = node.getSessionProperties().iterator();
                 while (sessionProperties.hasNext()) {
                     process(sessionProperties.next(), indent + 2);
@@ -657,7 +654,9 @@ public final class SqlFormatter
                     }
                     builder.append('\n');
                 }
-
+            }
+            if (!node.getFunctions().isEmpty()) {
+                builder.append("WITH ");
                 Iterator<FunctionSpecification> functions = node.getFunctions().iterator();
                 while (functions.hasNext()) {
                     process(functions.next(), indent + 1);
