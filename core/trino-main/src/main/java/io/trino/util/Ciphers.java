@@ -28,7 +28,7 @@ import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 
 public class Ciphers
 {
-    private static final int AES_ENCRYPTION_KEY_BITS = 256;
+    private static final int AES_ENCRYPTION_KEY_BITS = 192;
 
     private Ciphers() {}
 
