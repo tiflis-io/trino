@@ -28,10 +28,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import java.net.URI;
 import java.sql.Date;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static io.trino.server.security.UserMapping.createUserMapping;
 import static io.trino.server.security.oauth2.OAuth2TokenExchangeResource.getInitiateUri;
@@ -86,6 +83,10 @@ public class OAuth2Authenticator
         builder.withPrincipal(new BasicPrincipal(principal.get()));
         groupsField.flatMap(field -> Optional.ofNullable((List<String>) claims.get().get(field)))
                 .ifPresent(groups -> builder.withGroups(ImmutableSet.copyOf(groups)));
+        // include inbound JWT Token into extraCredentials for Principal
+        Map<String, String> extraCredentials = new HashMap<>();
+        extraCredentials.put("jwt_token", tokenPair.accessToken());
+        builder.withExtraCredentials(extraCredentials);
         return Optional.of(builder.build());
     }
 
