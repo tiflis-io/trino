@@ -125,6 +125,8 @@ jobs:
           platforms: arm64,ppc64le
       - name: Build and Test Docker Image
         run: core/docker/build.sh
+      - name: Pushi Tiflis Docker Image
+        run: core/docker/push.sh
 
   check-commits-dispatcher:
     runs-on: ubuntu-latest
