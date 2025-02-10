@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - tiflis-master
   pull_request:
     paths-ignore:
       - 'docs/**'
@@ -149,15 +148,8 @@ jobs:
       - uses: docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a # v3
         with:
           platforms: arm64,ppc64le
-      - uses: docker/login-action@v3.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and Test Docker Image
         run: core/docker/build.sh
-      - name: Publish Tiflis Docker Image
-        run: core/docker/push.sh
 
   check-commits-dispatcher:
     runs-on: ubuntu-latest
