@@ -15,6 +15,28 @@ defaults:
   run:
     shell: bash --noprofile --norc -euo pipefail {0}
 
+env:
+  # An envar that signals to tests we are executing in the CI environment
+  CONTINUOUS_INTEGRATION: true
+  # allow overriding Maven command
+  MAVEN: ./mvnw
+  MAVEN_OPTS: "-Xmx512M -XX:+ExitOnOutOfMemoryError"
+  MAVEN_INSTALL_OPTS: "-Xmx3G -XX:+ExitOnOutOfMemoryError"
+  MAVEN_FAST_INSTALL: "-B -V -T 1C -DskipTests -Dmaven.source.skip=true -Dair.check.skip-all"
+  MAVEN_COMPILE_COMMITS: "-B --quiet -T 1C -DskipTests -Dmaven.source.skip=true -Dair.check.skip-all=true -Dmaven.javadoc.skip=true --no-snapshot-updates --no-transfer-progress -pl '!:trino-server-rpm'"
+  MAVEN_GIB: "-P gib -Dgib.referenceBranch=refs/remotes/origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.event.repository.default_branch }}"
+  MAVEN_TEST: "-B -Dmaven.source.skip=true -Dair.check.skip-all --fail-at-end -P gib -Dgib.referenceBranch=refs/remotes/origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.event.repository.default_branch }}"
+  # Testcontainers kills image pulls if they don't make progress for > 30s and retries for 2m before failing. This means
+  # that if an image doesn't download all it's layers within ~2m then any other concurrent pull will be killed because
+  # the Docker daemon only downloads 3 layers concurrently which prevents the other pull from making any progress.
+  # This value should be greater than the time taken for the longest image pull.
+  TESTCONTAINERS_PULL_PAUSE_TIMEOUT: 600
+  # used by actions/cache to retry the download after this time: https://github.com/actions/cache/blob/main/workarounds.md#cache-segment-restore-timeout
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
+  CI_SKIP_SECRETS_PRESENCE_CHECKS: ${{ secrets.CI_SKIP_SECRETS_PRESENCE_CHECKS }}
+  SECRETS_PRESENT: ${{ secrets.SECRETS_PRESENT }}
+  PTL_TMP_DOWNLOAD_PATH: /tmp/pt_java_downloads
+
 jobs:
   publish:
     runs-on: ubuntu-latest
