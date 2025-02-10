@@ -32,12 +32,40 @@ jobs:
         with:
           cache: 'restore'
           cleanup-node: true
+      - name: Maven Install
+        run: |
+          export MAVEN_OPTS="${MAVEN_INSTALL_OPTS}"
+          $MAVEN clean install ${MAVEN_FAST_INSTALL} -pl '!:trino-docs,!:trino-server-rpm'
+      - name: Test Server RPM
+        run: |
+          export MAVEN_OPTS="${MAVEN_INSTALL_OPTS}"
+          $MAVEN verify -B --strict-checksums -P ci -pl :trino-server-rpm
+      - name: Test JDBC shading
+        # Run only integration tests to verify JDBC driver shading
+        run: |
+          export MAVEN_OPTS="${MAVEN_INSTALL_OPTS}"
+          $MAVEN failsafe:integration-test failsafe:verify -B --strict-checksums -P ci -pl :trino-jdbc
+      - name: Clean Maven Output
+        run: $MAVEN clean -pl '!:trino-server,!:trino-cli'
+      - uses: docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a # v3
+        with:
+          platforms: arm64,ppc64le
       - uses: docker/login-action@v3.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5.0.0
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
       - name: Build and Test Docker Image
-        run: core/docker/build.sh
+        run: core/docker/build.sh -x r ${{ steps.meta.outputs.tags }}
       - name: Publish Tiflis Docker Image
         run: core/docker/push.sh
