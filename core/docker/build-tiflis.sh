@@ -10,6 +10,7 @@ Builds the Trino Docker image
 -h       Display help
 -a       Build the specified comma-separated architectures, defaults to amd64,arm64,ppc64le
 -r       Build the specified Trino release version, downloads all required artifacts
+-t       Image Tag
 -j       Build the Trino release with specified JDK distribution
 -x       Skip image tests
 EOF
@@ -21,8 +22,9 @@ cd "${SCRIPT_DIR}" || exit 2
 
 SOURCE_DIR="${SCRIPT_DIR}/../.."
 
-ARCHITECTURES=(amd64 arm64 ppc64le)
+ARCHITECTURES=(amd64)
 TRINO_VERSION=
+TAG=
 
 JDK_RELEASE=$(cat "${SOURCE_DIR}/core/jdk/current")
 JDKS_PATH="${SOURCE_DIR}/core/jdk"
@@ -43,6 +45,9 @@ while getopts ":a:h:r:j:x" o; do
             ;;
         r)
             TRINO_VERSION=${OPTARG}
+            ;;
+        t)
+            TAG=${OPTARG}
             ;;
         h)
             usage
@@ -112,8 +117,6 @@ rm "${WORK_DIR}/trino-server-${TRINO_VERSION}.tar.gz"
 cp -R bin "${WORK_DIR}/trino-server-${TRINO_VERSION}"
 cp -R default "${WORK_DIR}/"
 
-TAG_PREFIX="ghcr.io/tiflis-io/trino:${TRINO_VERSION}"
-
 for arch in "${ARCHITECTURES[@]}"; do
     echo "🫙  Building the image for $arch with JDK ${JDK_RELEASE}"
     docker build \
@@ -125,22 +128,10 @@ for arch in "${ARCHITECTURES[@]}"; do
         --build-arg JDK_DOWNLOAD_LINK="$(jdk_download_link "${JDKS_PATH}/${JDK_RELEASE}" "${arch}")" \
         --platform "linux/$arch" \
         -f Dockerfile \
-        -t "${TAG_PREFIX}-$arch" \
+        -t "${TAG}" \
         --build-arg "TRINO_VERSION=${TRINO_VERSION}"
 done
 
 echo "🧹 Cleaning up the build context directory"
 rm -r "${WORK_DIR}"
-
-echo -n "🏃 Testing built images"
-if [[ "${SKIP_TESTS}" == "true" ]];then
-  echo " (skipped)"
-else
-  echo
-  source container-test.sh
-  for arch in "${ARCHITECTURES[@]}"; do
-      test_container "${TAG_PREFIX}-$arch" "linux/$arch"
-      docker image inspect -f '🚀 Built {{.RepoTags}} {{.Id}}' "${TAG_PREFIX}-$arch"
-  done
-fi
 

@@ -98,6 +98,6 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
       - name: Build and Test Tiflis Docker Image
-        run: core/docker/build-tiflis.sh
+        run: core/docker/build-tiflis.sh -t ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}
       - name: Publish Tiflis Docker Image
-        run: core/docker/push.sh
+        run: docker push ghcr.io/${{ github.repository }} --all-tags
