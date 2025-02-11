@@ -104,7 +104,7 @@ else
 fi
 
 
-TAG_PREFIX="trino:${TRINO_VERSION}"
+TAG_PREFIX="ghcr.io/tiflis-io/trino:${TRINO_VERSION}"
 
 for arch in "${ARCHITECTURES[@]}"; do
     echo "🫙  Pushing the image for $arch with JDK ${JDK_RELEASE}"
