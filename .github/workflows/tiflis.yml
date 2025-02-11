@@ -92,7 +92,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
       - uses: docker/build-push-action@v6
         with:
-          context: src
+          context: core
           push: true
           file: core/docker/Dockerfile
           build-args: |
