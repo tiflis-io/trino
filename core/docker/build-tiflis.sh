@@ -4,7 +4,7 @@ set -euo pipefail
 
 usage() {
     cat <<EOF 1>&2
-Usage: $0 [-h] [-a <ARCHITECTURES>] [-r <VERSION>]
+Usage: $0 [-h] [-a <ARCHITECTURES>] [-r <VERSION>] [-t <TAG>]
 Builds the Trino Docker image
 
 -h       Display help
@@ -31,7 +31,7 @@ JDKS_PATH="${SOURCE_DIR}/core/jdk"
 
 SKIP_TESTS=false
 
-while getopts ":a:h:r:j:x" o; do
+while getopts ":a:h:r:t:j:x" o; do
     case "${o}" in
         a)
             IFS=, read -ra ARCH_ARG <<< "$OPTARG"
