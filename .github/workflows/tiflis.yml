@@ -58,30 +58,23 @@ jobs:
         run: |
           export MAVEN_OPTS="${MAVEN_INSTALL_OPTS}"
           $MAVEN clean install ${MAVEN_FAST_INSTALL} -pl '!:trino-docs,!:trino-server-rpm'
-      # - name: Map impacted plugins to features
-      #   run: |
-      #     export MAVEN_OPTS="${MAVEN_INSTALL_OPTS}"
-      #     # build a list of impacted modules, ignoring modules that cannot affect either product tests or Trino
-      #     $MAVEN validate ${MAVEN_FAST_INSTALL} ${MAVEN_GIB} -Dgib.logImpactedTo=gib-impacted.log -pl '!:trino-docs,!:trino-tests,!:trino-faulttolerant-tests'
-      #     # GIB doesn't run on master, so make sure the file always exist
-      #     touch gib-impacted.log
-      #     testing/trino-plugin-reader/target/trino-plugin-reader-*-executable.jar -i gib-impacted.log -p core/trino-server/target/trino-server-*-hardlinks/plugin > impacted-features.log
-      #     echo "Impacted plugin features:"
-      #     cat impacted-features.log
-      # - name: Test Server RPM
-      #   run: |
-      #     export MAVEN_OPTS="${MAVEN_INSTALL_OPTS}"
-      #     $MAVEN verify -B --strict-checksums -P ci -pl :trino-server-rpm
-      # - name: Test JDBC shading
-      #   # Run only integration tests to verify JDBC driver shading
-      #   run: |
-      #     export MAVEN_OPTS="${MAVEN_INSTALL_OPTS}"
-      #     $MAVEN failsafe:integration-test failsafe:verify -B --strict-checksums -P ci -pl :trino-jdbc
       - name: Clean Maven Output
         run: $MAVEN clean -pl '!:trino-server,!:trino-cli'
-      - uses: docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a # v3
-        with:
-          platforms: arm64,ppc64le
+      - name: Clean Maven Output
+        run: |
+          TRINO_VERSION=$("${SOURCE_DIR}/mvnw" -f "${SOURCE_DIR}/pom.xml" --quiet help:evaluate -Dexpression=project.version -DforceStdout)
+          echo "🎯 Using currently built artifacts from the core/trino-server and client/trino-cli modules and version ${TRINO_VERSION}"
+          trino_server="${SOURCE_DIR}/core/trino-server/target/trino-server-${TRINO_VERSION}.tar.gz"
+          trino_client="${SOURCE_DIR}/client/trino-cli/target/trino-cli-${TRINO_VERSION}-executable.jar"
+
+          echo "🧱 Preparing the image build context directory"
+          WORK_DIR="$(mktemp -d)"
+          cp "$trino_server" "${WORK_DIR}/"
+          cp "$trino_client" "${WORK_DIR}/"
+          tar -C "${WORK_DIR}" -xzf "${WORK_DIR}/trino-server-${TRINO_VERSION}.tar.gz"
+          rm "${WORK_DIR}/trino-server-${TRINO_VERSION}.tar.gz"
+          cp -R bin "${WORK_DIR}/trino-server-${TRINO_VERSION}"
+          cp -R default "${WORK_DIR}/"
       - uses: docker/login-action@v3.0.0
         with:
           registry: ghcr.io
@@ -97,7 +90,14 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-      - name: Build and Test Tiflis Docker Image
-        run: core/docker/build-tiflis.sh -t ${{ steps.meta.outputs.tags }}
-      - name: Publish Tiflis Docker Image
-        run: docker push ghcr.io/${{ github.repository }} --all-tags
+      - uses: docker/build-push-action@v6
+        with:
+          context: src
+          push: true
+          file: core/docker/Dockerfile
+          build-args: |
+            ARCH=amd64
+            JDK_VERSION=$(cat "core/jdk/current")
+            JDK_DOWNLOAD_LINK=https://api.adoptium.net/v3/binary/version/jdk-23.0.2+7/linux/x64/jdk/hotspot/normal/eclipse?project=jdk
+            TRINO_VERSION=$("${SOURCE_DIR}/mvnw" -f "${SOURCE_DIR}/pom.xml" --quiet help:evaluate -Dexpression=project.version -DforceStdout)
+          tags: ${{ steps.meta.outputs.tags }}
