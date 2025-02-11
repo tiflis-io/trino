@@ -62,10 +62,10 @@ jobs:
         run: $MAVEN clean -pl '!:trino-server,!:trino-cli'
       - name: Clean Maven Output
         run: |
-          TRINO_VERSION=$("${SOURCE_DIR}/mvnw" -f "${SOURCE_DIR}/pom.xml" --quiet help:evaluate -Dexpression=project.version -DforceStdout)
+          TRINO_VERSION=$("$mvnw" -f "$pom.xml" --quiet help:evaluate -Dexpression=project.version -DforceStdout)
           echo "🎯 Using currently built artifacts from the core/trino-server and client/trino-cli modules and version ${TRINO_VERSION}"
-          trino_server="${SOURCE_DIR}/core/trino-server/target/trino-server-${TRINO_VERSION}.tar.gz"
-          trino_client="${SOURCE_DIR}/client/trino-cli/target/trino-cli-${TRINO_VERSION}-executable.jar"
+          trino_server="$core/trino-server/target/trino-server-${TRINO_VERSION}.tar.gz"
+          trino_client="$client/trino-cli/target/trino-cli-${TRINO_VERSION}-executable.jar"
 
           echo "🧱 Preparing the image build context directory"
           WORK_DIR="$(mktemp -d)"
@@ -99,5 +99,5 @@ jobs:
             ARCH=amd64
             JDK_VERSION=$(cat "core/jdk/current")
             JDK_DOWNLOAD_LINK=https://api.adoptium.net/v3/binary/version/jdk-23.0.2+7/linux/x64/jdk/hotspot/normal/eclipse?project=jdk
-            TRINO_VERSION=$("${SOURCE_DIR}/mvnw" -f "${SOURCE_DIR}/pom.xml" --quiet help:evaluate -Dexpression=project.version -DforceStdout)
+            TRINO_VERSION=$("$mvnw" -f "$pom.xml" --quiet help:evaluate -Dexpression=project.version -DforceStdout)
           tags: ${{ steps.meta.outputs.tags }}
