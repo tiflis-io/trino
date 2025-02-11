@@ -97,7 +97,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-      - name: Build and Test Docker Image
-        run: core/docker/build.sh
+      - name: Build and Test Tiflis Docker Image
+        run: core/docker/build-tiflis.sh
       - name: Publish Tiflis Docker Image
         run: core/docker/push.sh
