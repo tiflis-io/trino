@@ -100,5 +100,5 @@ jobs:
             ARCH=amd64
             JDK_VERSION=temurin/jdk-23.0.2+7
             JDK_DOWNLOAD_LINK=https://api.adoptium.net/v3/binary/version/jdk-23.0.2+7/linux/x64/jdk/hotspot/normal/eclipse?project=jdk
-            TRINO_VERSION=490
+            TRINO_VERSION=469
           tags: ${{ steps.meta.outputs.tags }}
