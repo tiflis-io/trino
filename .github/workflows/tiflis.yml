@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - tiflis-master
+    tags:
+      - "v*"
   pull_request:
     paths-ignore:
       - 'docs/**'
