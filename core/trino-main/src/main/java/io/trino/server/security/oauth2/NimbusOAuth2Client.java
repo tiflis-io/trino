@@ -49,11 +49,7 @@ import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import com.nimbusds.oauth2.sdk.token.Tokens;
-import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
-import com.nimbusds.openid.connect.sdk.Nonce;
-import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
-import com.nimbusds.openid.connect.sdk.UserInfoRequest;
-import com.nimbusds.openid.connect.sdk.UserInfoResponse;
+import com.nimbusds.openid.connect.sdk.*;
 import com.nimbusds.openid.connect.sdk.claims.AccessTokenHash;
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
@@ -221,6 +217,7 @@ public class NimbusOAuth2Client
                             .scope(scope)
                             .endpointURI(authUrl)
                             .state(new State(state))
+                            .prompt(Prompt.Type.LOGIN)
                             .codeChallenge(codeVerifier, CodeChallengeMethod.S256)
                             .build()
                             .toURI(),
@@ -276,6 +273,8 @@ public class NimbusOAuth2Client
                             .endpointURI(authUrl)
                             .state(new State(state))
                             .nonce(new Nonce(hashNonce(nonce)))
+                            .prompt(Prompt.Type.LOGIN)
+                            .codeChallenge(codeVerifier, CodeChallengeMethod.S256)
                             .build()
                             .toURI(),
                     Optional.of(nonce));
